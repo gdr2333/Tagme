@@ -1,0 +1,18 @@
+﻿@page "/"
+@using Microsoft.EntityFrameworkCore
+@using Tagme.Data
+
+@inject IDbContextFactory<TagContext> DbFactory
+
+<h1>这是一个拿来打标签的网站</h1>
+
+<p>所有标签：</p>
+
+@using(var dbContext = DbFactory.CreateDbContext())
+{
+    @foreach(var user in from tag in dbContext.Tags select tag.Name)
+    {
+        <a href=@($"/{user}")>@user</a>
+        <br/>
+    }
+}

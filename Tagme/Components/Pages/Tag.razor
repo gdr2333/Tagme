@@ -1,0 +1,66 @@
+﻿@page "/{User}"
+
+@rendermode InteractiveServer
+
+@using Microsoft.EntityFrameworkCore
+@using Tagme.Data
+
+@inject IDbContextFactory<TagContext> DbFactory
+@inject LinkInfo LinkInfo
+@inject IJSRuntime JS
+
+<PageTitle>@User 的标签</PageTitle>
+
+<h1>@User 的标签</h1>
+
+@using (var dbContext = DbFactory.CreateDbContext())
+{
+    TagInfo[] data = [.. from tag in dbContext.Tags where tag.Name == User select tag];
+    if (data.Length > 0)
+        @foreach (var tag in data)
+        {
+            <button @onclick="() => UpdateTag(tag.Id)">@tag.Tag<sub>@tag.Times</sub></button>
+        }
+    else
+    {
+        <text>@User 的页面暂未创建 点击下面的“添加标签”来创建并添加第一个标签。</text>
+    }
+}
+
+<br />
+
+<input type="text" @valu="NewTagInput" />
+<button @onclick="AddTag">添加标签</button>
+
+@code
+{
+    [Parameter]
+    public string User { get; set; }
+
+    public string NewTagInput { get; set; }
+
+    public void UpdateTag(ulong key)
+    {
+        if (LinkInfo.TryVoteTag())
+        {
+            using var dbContext = DbFactory.CreateDbContext();
+            dbContext.Tags.Find(key).Times++;
+            dbContext.SaveChanges();
+        }
+        else
+            JS.InvokeVoidAsync("alert", "你需要等待一段时间才能继续给标签投票");
+    }
+
+    public void AddTag()
+    {
+        if (LinkInfo.TryNewTag())
+        {
+            using var dbContext = DbFactory.CreateDbContext();
+            dbContext.Tags.Add(new() { Name = User, Tag = NewTagInput, Times = 1 });
+            dbContext.SaveChanges();
+            NewTagInput = string.Empty;
+        }
+        else
+            JS.InvokeVoidAsync("alert", "你需要等待一段时间才能继续添加标签");
+    }
+}
